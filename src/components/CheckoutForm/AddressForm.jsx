@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import {
   InputLabel,
   Select,
@@ -10,7 +11,7 @@ import {
 import { useForm, FormProvider } from "react-hook-form";
 import { commerce } from "../../lib/commerce";
 import FormInput from "./CustomTextField";
-const AddressForm = ({ checkoutToken }) => {
+const AddressForm = ({ checkoutToken, next }) => {
   const [shippingCountries, setShippingCountries] = useState([]);
   const [shippingCountry, setShippingCountry] = useState("");
   const [shippingSubdivisions, setShippingSubdivisions] = useState([]);
@@ -28,6 +29,10 @@ const AddressForm = ({ checkoutToken }) => {
       label: name,
     })
   );
+  const options = shippingOptions.map((sO) => ({
+    id: sO.id,
+    label: `${sO.description} - ${sO.price.formatted_with_symbol}`,
+  }));
 
   const fetchShippingCountries = async (checkoutTokenId) => {
     const { countries } = await commerce.services.localeListShippingCountries(
@@ -39,12 +44,25 @@ const AddressForm = ({ checkoutToken }) => {
   };
 
   const fetchSubdivisions = async (countryCode) => {
-    const { subdivisions } = await commerce.localeListSubdivisions(
-      checkoutToken,
+    const { subdivisions } = await commerce.services.localeListSubdivisions(
       countryCode
     );
+
     setShippingSubdivisions(subdivisions);
     setShippingSubdivision(Object.keys(subdivisions)[0]);
+  };
+
+  const fetchShippingOptions = async (
+    checkoutTokenId,
+    country,
+    region = null
+  ) => {
+    const options = await commerce.checkout.getShippingOptions(
+      checkoutTokenId,
+      { country, region }
+    );
+    setShippingOptions(options);
+    setShippingOption(options[0].id);
   };
 
   useEffect(() => {
@@ -53,13 +71,26 @@ const AddressForm = ({ checkoutToken }) => {
   useEffect(() => {
     if (shippingCountry) fetchSubdivisions(shippingCountry);
   }, [shippingCountry]);
+  useEffect(() => {
+    if (shippingSubdivision)
+      fetchShippingOptions(checkoutToken, shippingCountry, shippingSubdivision);
+  }, [shippingSubdivision]);
   return (
     <>
       <Typography variant="h6" gutterBottom>
         Shipping address
       </Typography>
       <FormProvider {...methods}>
-        <form onSubmit="">
+        <form
+          onSubmit={methods.handleSubmit((data) =>
+            next({
+              ...data,
+              shippingCountry,
+              shippingSubdivision,
+              shippingOption,
+            })
+          )}
+        >
           <Grid container spacing={3}>
             <FormInput required name="firstName" label="First Name" />
             <FormInput required name="lastName" label="Last Name" />
@@ -95,13 +126,30 @@ const AddressForm = ({ checkoutToken }) => {
                 ))}
               </Select>
             </Grid>
-            {/* <Grid item xs={12} sm={6}>
-                    <InputLabel>Shipping Options</InputLabel>
-                        <Select value={} fullWidth onChange={}>
-                            <MenuItem key={} value={} > Select Me</MenuItem>
-                          </Select>
-                </Grid> */}
+            <Grid item xs={12} sm={6}>
+              <InputLabel>Shipping Options</InputLabel>
+              <Select
+                value={shippingOption}
+                fullWidth
+                onChange={(e) => setShippingOption(e.target.value)}
+              >
+                {options.map((option) => (
+                  <MenuItem key={option.id} value={option.id}>
+                    {option.label}
+                  </MenuItem>
+                ))}
+              </Select>
+            </Grid>
           </Grid>
+          <br />
+          <div style={{ display: "flex", justifyContent: "space-between" }}>
+            <Button component={Link} to="/cart" variant="outlined">
+              Back to Cart
+            </Button>
+            <Button type="submit" color="primary" variant="contained">
+              Next
+            </Button>
+          </div>
         </form>
       </FormProvider>
     </>
