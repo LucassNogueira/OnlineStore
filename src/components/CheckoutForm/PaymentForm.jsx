@@ -3,7 +3,7 @@ import { Typography, Button, Divider } from "@material-ui/core";
 import {
   Elements,
   CardElement,
-  ElementConsumer,
+  ElementsConsumer,
 } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
 import Review from "./Review";
@@ -19,7 +19,7 @@ const PaymentForm = ({ checkoutToken, backStep }) => {
         Payment method
       </Typography>
       <Elements stripe={stripePromise}>
-        <ElementConsumer>
+        <ElementsConsumer>
           {({ elements, stripe }) => (
             <form>
               <CardElement />
@@ -40,7 +40,7 @@ const PaymentForm = ({ checkoutToken, backStep }) => {
               </div>
             </form>
           )}
-        </ElementConsumer>
+        </ElementsConsumer>
       </Elements>
     </>
   );
